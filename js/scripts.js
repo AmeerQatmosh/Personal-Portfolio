@@ -1,7 +1,7 @@
 // ==========================
 // Global Constants
 // ==========================
-const BASE_PATH = window.location.hostname.includes('github.io') ? '/repo-name/' : './'; 
+const BASE_PATH = window.location.hostname.includes('github.io') ? '/Personal-Portfolio/' : './'; 
 // <-- REPLACE 'repo-name' with your GitHub repository name
 
 const DEFAULT_CARD_IMAGE = `${BASE_PATH}images/card_placeholder_bg.webp`;
