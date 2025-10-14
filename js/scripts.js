@@ -1,11 +1,9 @@
 // ==========================
 // Global Constants
 // ==========================
-const BASE_PATH = window.location.hostname.includes('github.io') ? '/Personal-Portfolio/' : './'; 
-// <-- REPLACE 'repo-name' with your GitHub repository name
 
-const DEFAULT_CARD_IMAGE = `${BASE_PATH}images/card_placeholder_bg.webp`;
-const DEFAULT_SPOTLIGHT_IMAGE = `${BASE_PATH}images/spotlight_placeholder_bg.webp`;
+const DEFAULT_CARD_IMAGE = "images/card_placeholder_bg.webp";
+const DEFAULT_SPOTLIGHT_IMAGE = "images/spotlight_placeholder_bg.webp";
 const MAX_MESSAGE_LENGTH = 300;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ILLEGAL_CHAR_EMAIL = /[^a-zA-Z0-9@._-]/;
@@ -31,7 +29,7 @@ const projectsHeading = projectsContainer?.querySelector('h2');
 const projectSection = document.getElementById('projectSection');
 
 let projectsData = [];
-let projectCards = [];
+let projectCards = []; // Cached NodeList for project cards
 let resizeTimer = null;
 let scrollInterval = null;
 
@@ -58,7 +56,7 @@ projectList.appendChild(loadingProjects);
 // ==========================
 async function loadAboutMe() {
     try {
-        const res = await fetch(`${BASE_PATH}data/aboutMeData.json`);
+        const res = await fetch('data/aboutMeData.json');
         if (!res.ok) throw new Error("Failed to fetch aboutMeData.json");
         const data = await res.json();
 
@@ -75,7 +73,7 @@ async function loadAboutMe() {
         Object.assign(headshotDiv.style, { padding: '0.5rem', margin: '1rem' });
 
         const img = document.createElement('img');
-        img.src = data.headshot ? `${BASE_PATH}${data.headshot}` : `${BASE_PATH}images/headshot.webp`;
+        img.src = data.headshot ?? "images/headshot.webp";
         img.alt = "Headshot";
         Object.assign(img.style, { width: "100%", height: "auto", objectFit: "cover" });
 
@@ -94,7 +92,7 @@ async function loadAboutMe() {
 // ==========================
 async function loadProjects() {
     try {
-        const res = await fetch(`${BASE_PATH}data/projectsData.json`);
+        const res = await fetch('data/projectsData.json');
         if (!res.ok) throw new Error("Failed to fetch projectsData.json");
         projectsData = await res.json();
 
@@ -121,7 +119,7 @@ function rebuildProjectList() {
         const card = document.createElement('div');
         card.className = 'projectCard';
         card.id = project_id;
-        card.style.backgroundImage = `url(${card_image ? BASE_PATH + card_image : DEFAULT_CARD_IMAGE})`;
+        card.style.backgroundImage = `url(${card_image ?? DEFAULT_CARD_IMAGE})`;
 
         const h4 = document.createElement('h4');
         h4.textContent = project_name ?? "Untitled Project";
@@ -147,7 +145,7 @@ function rebuildProjectList() {
 function adjustHeadingSpacing() {
     if (!projectsHeading || !projectSection) return;
 
-    const bufferDesktop = 100;
+    const bufferDesktop = 100; // more professional spacing
     const bufferMobile = 16;
 
     if (isDesktop()) {
@@ -162,6 +160,7 @@ function adjustHeadingSpacing() {
 function adjustProjectListLayout() {
     if (!projectList) return;
 
+    // Reset styles
     Object.assign(projectList.style, { display: '', flexDirection: '', height: '', overflowX: '', overflowY: '', gap: '', padding: '', marginTop: '' });
     projectCards.forEach(card => Object.assign(card.style, { width: '', height: '', flex: '', margin: '', padding: '', borderRadius: '', boxShadow: '' }));
 
@@ -214,7 +213,7 @@ function setSpotlight(project) {
         projectSpotlight.style.backgroundImage = `url(${DEFAULT_SPOTLIGHT_IMAGE})`;
     } else {
         const { spotlight_image, project_name, long_description, url } = project;
-        projectSpotlight.style.backgroundImage = `url(${spotlight_image ? BASE_PATH + spotlight_image : DEFAULT_SPOTLIGHT_IMAGE})`;
+        projectSpotlight.style.backgroundImage = `url(${spotlight_image ?? DEFAULT_SPOTLIGHT_IMAGE})`;
 
         const h3 = document.createElement('h3');
         h3.textContent = project_name ?? 'Untitled Project';
@@ -334,3 +333,12 @@ window.addEventListener('resize', () => {
 // Initialize
 loadAboutMe();
 loadProjects();
+
+
+// ==========================
+// Set header name
+// ==========================
+window.addEventListener('DOMContentLoaded', () => {
+    const headerH1 = document.querySelector('header h1');
+    headerH1.textContent = "Ameer Qatmosh";
+});
