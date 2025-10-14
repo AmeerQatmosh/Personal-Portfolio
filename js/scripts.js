@@ -66,6 +66,7 @@ async function loadAboutMe() {
         const headshotDiv = document.createElement('div');
         headshotDiv.className = "headshotContainer";
         headshotDiv.style.padding = "0.5rem";
+        headshotDiv.style.margin = "1rem";
 
         const img = document.createElement('img');
         img.src = data.headshot ?? "./images/headshot.webp";
@@ -86,6 +87,22 @@ async function loadAboutMe() {
 // Section 2: Projects
 // ==========================
 async function loadProjects() {
+
+    // Add spacing below <h2> dynamically
+    const projectsContainer = document.querySelector('#projectsContainer');
+    const projectsHeading = projectsContainer?.querySelector('h2');
+
+    if (projectsHeading) {
+        // Only for desktop
+        if (isDesktop()) {
+            const buffer = 100; // px of space below heading
+            projectsHeading.style.marginBottom = `${buffer}px`;
+        } else {
+            // smaller margin on mobile if needed
+            projectsHeading.style.marginBottom = '12px';
+        }
+    }
+
     try {
         const res = await fetch('./data/projectsData.json');
         if (!res.ok) throw new Error("Failed to fetch projectsData.json");
@@ -96,7 +113,11 @@ async function loadProjects() {
         setupProjectCardListeners();
         setupProjectArrowScroll();
 
-        requestAnimationFrame(adjustProjectListLayout);
+        // Apply layout adjustments and heading spacing
+        requestAnimationFrame(() => {
+            adjustProjectListLayout();
+            adjustHeadingSpacing();
+        });
     } catch (err) {
         console.error(err);
         projectList.textContent = "Failed to load Projects.";
@@ -129,12 +150,32 @@ function rebuildProjectList() {
     projectCards = Array.from(document.querySelectorAll('.projectCard'));
 
     adjustProjectListLayout();
+    adjustHeadingSpacing(); // Ensure spacing after rebuild
 }
 
+// ==========================
+// New: Adjust <h2> spacing dynamically
+// ==========================
+function adjustHeadingSpacing() {
+    const projectsContainer = document.querySelector('#projectsContainer'); // parent container
+    const projectsHeading = projectsContainer?.querySelector('h2');
+
+    if (!projectsContainer || !projectsHeading) return;
+
+    if (isDesktop()) {
+        const headingHeight = projectsHeading.getBoundingClientRect().height;
+        const buffer = 24; // px distance between <h2> and projectSection
+        projectSection.style.marginTop = `${headingHeight + buffer}px`;
+    } else {
+        projectSection.style.marginTop = ''; // reset for mobile
+    }
+}
+
+// ==========================
 function adjustProjectListLayout() {
     if (!projectList) return;
 
-    // Clear previous inline styles
+    // Reset styles
     Object.assign(projectList.style, { display: '', flexDirection: '', height: '', overflowX: '', overflowY: '', marginTop: '' });
     projectCards.forEach(card => Object.assign(card.style, { width: '', height: '', flex: '' }));
 
@@ -144,6 +185,7 @@ function adjustProjectListLayout() {
 
         const spotlightHeight = projectSpotlight.getBoundingClientRect().height || window.innerHeight * 0.5;
         projectList.style.height = `${Math.round(spotlightHeight)}px`;
+        projectList.style.padding = '20px';
 
         const visibleCount = 3;
         const gapPx = 12;
@@ -157,6 +199,8 @@ function adjustProjectListLayout() {
     }
 }
 
+// ==========================
+// Section 2 continued: Spotlight
 function setSpotlight(project) {
     const frag = document.createDocumentFragment();
     spotlightTitles.innerHTML = '';
@@ -188,6 +232,8 @@ function setSpotlight(project) {
     spotlightTitles.appendChild(frag);
 }
 
+// ==========================
+// Event Delegation for Project Cards
 function setupProjectCardListeners() {
     projectList.removeEventListener('click', onProjectListClick);
     projectList.addEventListener('click', onProjectListClick);
@@ -209,9 +255,7 @@ function updateActiveCard(activeCard) {
 
 // ==========================
 // Continuous Smooth Scroll Arrows
-// ==========================
 let scrollInterval = null;
-
 function setupProjectArrowScroll() {
     const scrollStep = 40;
     const scrollDelay = 10;
@@ -242,7 +286,6 @@ function setupProjectArrowScroll() {
 
 // ==========================
 // Section 3: Form Validation
-// ==========================
 function updateCharacterCount() {
     const length = messageInput.value.length;
     charactersLeftDiv.textContent = `Characters: ${length}/${MAX_MESSAGE_LENGTH}`;
@@ -282,15 +325,16 @@ updateCharacterCount();
 
 // ==========================
 // Handle window resize
-// ==========================
 let resizeTimer = null;
 window.addEventListener('resize', () => {
     if (resizeTimer) clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => rebuildProjectList(), 150);
+    resizeTimer = setTimeout(() => {
+        rebuildProjectList();
+        adjustHeadingSpacing(); // fix spacing on resize
+    }, 150);
 });
 
 // ==========================
 // Initialize Everything
-// ==========================
 loadAboutMe();
 loadProjects();
