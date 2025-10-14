@@ -8,9 +8,9 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ILLEGAL_CHAR_EMAIL = /[^a-zA-Z0-9@._-]/;
 const ILLEGAL_CHAR_MESSAGE = /[^a-zA-Z0-9@._\-\s]/;
 
-let projectsData = [];
-
+// ==========================
 // Cached DOM
+// ==========================
 const aboutMeContainer = document.getElementById('aboutMe');
 const projectList = document.getElementById('projectList');
 const projectSpotlight = document.getElementById('projectSpotlight');
@@ -24,6 +24,14 @@ const emailErrorDiv = document.getElementById('emailError');
 const messageErrorDiv = document.getElementById('messageError');
 const charactersLeftDiv = document.getElementById('charactersLeft');
 const projectSection = document.getElementById('projectSection');
+
+let projectsData = [];
+let projectCards = []; // Cached NodeList for project cards
+
+// ==========================
+// Helpers
+// ==========================
+const isDesktop = () => window.matchMedia('(min-width:1024px)').matches;
 
 // ==========================
 // Loading Elements
@@ -39,12 +47,6 @@ loadingProjects.id = "loadingProjects";
 projectList.appendChild(loadingProjects);
 
 // ==========================
-// Helpers
-// ==========================
-const isDesktop = () => window.matchMedia('(min-width:1024px)').matches;
-
-
-// ==========================
 // Section 1: About Me
 // ==========================
 async function loadAboutMe() {
@@ -54,10 +56,11 @@ async function loadAboutMe() {
         const data = await res.json();
 
         aboutMeContainer.innerHTML = '';
+
         const frag = document.createDocumentFragment();
 
         const p = document.createElement('p');
-        p.textContent = data.aboutMe || "About me info missing.";
+        p.textContent = data.aboutMe ?? "About me info missing.";
         frag.appendChild(p);
 
         const headshotDiv = document.createElement('div');
@@ -65,11 +68,9 @@ async function loadAboutMe() {
         headshotDiv.style.padding = "0.5rem";
 
         const img = document.createElement('img');
-        img.src = data.headshot || "./images/headshot.webp";
+        img.src = data.headshot ?? "./images/headshot.webp";
         img.alt = "Headshot";
-        img.style.width = "100%";
-        img.style.height = "auto";
-        img.style.objectFit = "cover";
+        Object.assign(img.style, { width: "100%", height: "auto", objectFit: "cover" });
 
         headshotDiv.appendChild(img);
         frag.appendChild(headshotDiv);
@@ -91,12 +92,11 @@ async function loadProjects() {
         projectsData = await res.json();
 
         rebuildProjectList();
-        setSpotlight(projectsData[0] || null);
+        setSpotlight(projectsData[0] ?? null);
         setupProjectCardListeners();
         setupProjectArrowScroll();
 
-        // ensure layout updates correctly
-        requestAnimationFrame(() => adjustProjectListLayout());
+        requestAnimationFrame(adjustProjectListLayout);
     } catch (err) {
         console.error(err);
         projectList.textContent = "Failed to load Projects.";
@@ -107,118 +107,85 @@ function rebuildProjectList() {
     projectList.innerHTML = '';
     const frag = document.createDocumentFragment();
 
-    projectsData.forEach(project => {
+    projectsData.forEach(({ project_id, card_image, project_name, short_description }) => {
         const card = document.createElement('div');
         card.className = 'projectCard';
-        card.id = project.project_id;
-        card.style.backgroundImage = `url(${project.card_image || DEFAULT_CARD_IMAGE})`;
+        card.id = project_id;
+        card.style.backgroundImage = `url(${card_image ?? DEFAULT_CARD_IMAGE})`;
 
         const h4 = document.createElement('h4');
-        h4.textContent = project.project_name || "Untitled Project";
+        h4.textContent = project_name ?? "Untitled Project";
 
         const p = document.createElement('p');
-        p.textContent = project.short_description || "No description available.";
+        p.textContent = short_description ?? "No description available.";
 
         card.append(h4, p);
         frag.appendChild(card);
     });
 
     projectList.appendChild(frag);
+
+    // Cache project cards
+    projectCards = Array.from(document.querySelectorAll('.projectCard'));
+
     adjustProjectListLayout();
 }
 
-
-// Adjust layout of projectList & cards
 function adjustProjectListLayout() {
-    
     if (!projectList) return;
 
-    // Clear any previous inline styles
-    projectList.style.display = '';
-    projectList.style.flexDirection = '';
-    projectList.style.height = '';
-    projectList.style.overflowX = '';
-    projectList.style.overflowY = '';
-    projectList.style.marginTop = '';
+    // Clear previous inline styles
+    Object.assign(projectList.style, { display: '', flexDirection: '', height: '', overflowX: '', overflowY: '', marginTop: '' });
+    projectCards.forEach(card => Object.assign(card.style, { width: '', height: '', flex: '' }));
 
-    document.querySelectorAll('.projectCard').forEach(card => {
-        card.style.width = '';
-        card.style.height = '';
-        card.style.flex = '';
-    });
-
-    // Dynamically add spacing below <h2> to prevent overlap
-    const projectsHeading = document.querySelector('#projectsContainer > h2');
-    if (projectsHeading && projectList.parentElement) {
-        const headingHeight = projectsHeading.getBoundingClientRect().height;
-        const buffer = 12; // optional extra spacing
-        projectList.parentElement.style.marginTop = `${headingHeight + buffer}px`;
-    }
-
+    // Desktop layout
     if (isDesktop()) {
-        // Desktop: vertical column, 3 cards visible
-        projectList.style.display = 'flex';
-        projectList.style.flexDirection = 'column';
-        projectList.style.gap = '12px';
-        projectList.style.overflowY = 'auto';
-        projectList.style.overflowX = 'hidden';
+        Object.assign(projectList.style, { display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', overflowX: 'hidden' });
 
-        const spotlightRect = projectSpotlight.getBoundingClientRect();
-        const desiredHeight = spotlightRect.height > 0 ? spotlightRect.height : (window.innerHeight * 0.5);
-        projectList.style.height = `${Math.round(desiredHeight)}px`;
+        const spotlightHeight = projectSpotlight.getBoundingClientRect().height || window.innerHeight * 0.5;
+        projectList.style.height = `${Math.round(spotlightHeight)}px`;
 
-        const gapPx = 12;
         const visibleCount = 3;
-        const totalGaps = (visibleCount - 1) * gapPx;
-        const perCardHeight = Math.floor((desiredHeight - totalGaps) / visibleCount);
+        const gapPx = 12;
+        const perCardHeight = Math.floor((spotlightHeight - (visibleCount - 1) * gapPx) / visibleCount);
 
-        document.querySelectorAll('.projectCard').forEach(card => {
-            card.style.height = `${perCardHeight}px`;
-            card.style.width = '100%';
-            card.style.flex = '0 0 auto';
-        });
+        projectCards.forEach(card => Object.assign(card.style, { height: `${perCardHeight}px`, width: '100%', flex: '0 0 auto' }));
     } else {
-        // Mobile/tablet: horizontal scroll
-        projectList.style.display = 'flex';
-        projectList.style.flexDirection = 'row';
-        projectList.style.gap = '12px';
-        projectList.style.overflowX = 'auto';
-        projectList.style.overflowY = 'hidden';
-        projectList.style.height = '';
-
-        document.querySelectorAll('.projectCard').forEach(card => {
-            card.style.width = '';
-            card.style.height = '';
-            card.style.flex = '0 0 auto';
-        });
+        // Mobile layout
+        Object.assign(projectList.style, { display: 'flex', flexDirection: 'row', gap: '12px', overflowX: 'auto', overflowY: 'hidden', height: '' });
+        projectCards.forEach(card => Object.assign(card.style, { width: '', height: '', flex: '0 0 auto' }));
     }
 }
 
-
 function setSpotlight(project) {
+    const frag = document.createDocumentFragment();
+    spotlightTitles.innerHTML = '';
+
     if (!project) {
-        spotlightTitles.innerHTML = '<h3>No project</h3><p>No details available.</p>';
+        const h3 = document.createElement('h3');
+        h3.textContent = "No project";
+        const p = document.createElement('p');
+        p.textContent = "No details available.";
+        frag.append(h3, p);
         projectSpotlight.style.backgroundImage = `url(${DEFAULT_SPOTLIGHT_IMAGE})`;
-        return;
+    } else {
+        const { spotlight_image, project_name, long_description, url } = project;
+        projectSpotlight.style.backgroundImage = `url(${spotlight_image ?? DEFAULT_SPOTLIGHT_IMAGE})`;
+
+        const h3 = document.createElement('h3');
+        h3.textContent = project_name ?? 'Untitled Project';
+        const p = document.createElement('p');
+        p.textContent = long_description ?? 'Details coming soon.';
+        const a = document.createElement('a');
+        a.href = url ?? '#';
+        a.textContent = 'Click here to see more...';
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+
+        frag.append(h3, p, a);
     }
 
-    const bg = project.spotlight_image || DEFAULT_SPOTLIGHT_IMAGE;
-    requestAnimationFrame(() => {
-        projectSpotlight.style.backgroundImage = `url(${bg})`;
-    });
-
-    spotlightTitles.innerHTML = '';
-    const h3 = document.createElement('h3');
-    h3.textContent = project.project_name || 'Untitled Project';
-    const p = document.createElement('p');
-    p.textContent = project.long_description || 'Details coming soon.';
-    const a = document.createElement('a');
-    a.href = project.url || '#';
-    a.textContent = 'Click here to see more...';
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-
-    spotlightTitles.append(h3, p, a);
+    spotlightTitles.appendChild(frag);
 }
 
 function setupProjectCardListeners() {
@@ -236,7 +203,7 @@ function onProjectListClick(e) {
 }
 
 function updateActiveCard(activeCard) {
-    document.querySelectorAll('.projectCard').forEach(c => c.classList.remove('active'));
+    projectCards.forEach(c => c.classList.remove('active'));
     activeCard.classList.add('active');
 }
 
@@ -246,25 +213,23 @@ function updateActiveCard(activeCard) {
 let scrollInterval = null;
 
 function setupProjectArrowScroll() {
-    const scrollStep = 40; // faster scroll
+    const scrollStep = 40;
     const scrollDelay = 10;
 
-    function startScroll(dir) {
+    const startScroll = dir => {
         stopScroll();
         scrollInterval = setInterval(() => {
-            const options = isDesktop()
-                ? { top: dir * scrollStep, behavior: 'smooth' }
-                : { left: dir * scrollStep, behavior: 'smooth' };
+            const options = isDesktop() ? { top: dir * scrollStep, behavior: 'smooth' } : { left: dir * scrollStep, behavior: 'smooth' };
             projectList.scrollBy(options);
         }, scrollDelay);
-    }
+    };
 
-    function stopScroll() {
+    const stopScroll = () => {
         if (scrollInterval) {
             clearInterval(scrollInterval);
             scrollInterval = null;
         }
-    }
+    };
 
     arrowLeft.addEventListener('pointerdown', () => startScroll(-1));
     arrowLeft.addEventListener('pointerup', stopScroll);
@@ -292,33 +257,19 @@ function validateForm() {
     const emailValue = emailInput.value.trim();
     const msgValue = messageInput.value.trim();
 
-    if (!emailValue) {
-        emailErrorDiv.textContent = 'Email cannot be empty.';
-        isValid = false;
-    } else if (!EMAIL_REGEX.test(emailValue)) {
-        emailErrorDiv.textContent = 'Invalid email format.';
-        isValid = false;
-    } else if (ILLEGAL_CHAR_EMAIL.test(emailValue)) {
-        emailErrorDiv.textContent = 'Email contains illegal characters.';
-        isValid = false;
-    }
+    if (!emailValue) { emailErrorDiv.textContent = 'Email cannot be empty.'; isValid = false; }
+    else if (!EMAIL_REGEX.test(emailValue)) { emailErrorDiv.textContent = 'Invalid email format.'; isValid = false; }
+    else if (ILLEGAL_CHAR_EMAIL.test(emailValue)) { emailErrorDiv.textContent = 'Email contains illegal characters.'; isValid = false; }
 
-    if (!msgValue) {
-        messageErrorDiv.textContent = 'Message cannot be empty.';
-        isValid = false;
-    } else if (ILLEGAL_CHAR_MESSAGE.test(msgValue)) {
-        messageErrorDiv.textContent = 'Message contains illegal characters.';
-        isValid = false;
-    } else if (msgValue.length > MAX_MESSAGE_LENGTH) {
-        messageErrorDiv.textContent = `Message cannot exceed ${MAX_MESSAGE_LENGTH} characters.`;
-        isValid = false;
-    }
+    if (!msgValue) { messageErrorDiv.textContent = 'Message cannot be empty.'; isValid = false; }
+    else if (ILLEGAL_CHAR_MESSAGE.test(msgValue)) { messageErrorDiv.textContent = 'Message contains illegal characters.'; isValid = false; }
+    else if (msgValue.length > MAX_MESSAGE_LENGTH) { messageErrorDiv.textContent = `Message cannot exceed ${MAX_MESSAGE_LENGTH} characters.`; isValid = false; }
 
     return isValid;
 }
 
 messageInput.addEventListener('input', updateCharacterCount);
-form.addEventListener('submit', (e) => {
+form.addEventListener('submit', e => {
     e.preventDefault();
     if (validateForm()) {
         alert('Form submitted successfully! Validation passed.');
@@ -343,5 +294,3 @@ window.addEventListener('resize', () => {
 // ==========================
 loadAboutMe();
 loadProjects();
-
-
