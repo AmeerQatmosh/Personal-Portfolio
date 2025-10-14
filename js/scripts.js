@@ -1,8 +1,9 @@
 // ==========================
 // Global Constants
 // ==========================
+const BASE_PATH = window.location.hostname.includes('github.io') ? '/repo-name/' : './'; 
+// <-- REPLACE 'repo-name' with your GitHub repository name
 
-const BASE_PATH = window.location.hostname.includes('github.io') ? '/Personal-Portfolio/' : './'; 
 const DEFAULT_CARD_IMAGE = `${BASE_PATH}images/card_placeholder_bg.webp`;
 const DEFAULT_SPOTLIGHT_IMAGE = `${BASE_PATH}images/spotlight_placeholder_bg.webp`;
 const MAX_MESSAGE_LENGTH = 300;
@@ -30,7 +31,7 @@ const projectsHeading = projectsContainer?.querySelector('h2');
 const projectSection = document.getElementById('projectSection');
 
 let projectsData = [];
-let projectCards = []; // Cached NodeList for project cards
+let projectCards = [];
 let resizeTimer = null;
 let scrollInterval = null;
 
@@ -74,7 +75,7 @@ async function loadAboutMe() {
         Object.assign(headshotDiv.style, { padding: '0.5rem', margin: '1rem' });
 
         const img = document.createElement('img');
-        img.src = data.headshot ?? `${BASE_PATH}images/headshot.webp`;
+        img.src = data.headshot ? `${BASE_PATH}${data.headshot}` : `${BASE_PATH}images/headshot.webp`;
         img.alt = "Headshot";
         Object.assign(img.style, { width: "100%", height: "auto", objectFit: "cover" });
 
@@ -120,7 +121,7 @@ function rebuildProjectList() {
         const card = document.createElement('div');
         card.className = 'projectCard';
         card.id = project_id;
-        card.style.backgroundImage = `url(${card_image ?? DEFAULT_CARD_IMAGE})`;
+        card.style.backgroundImage = `url(${card_image ? BASE_PATH + card_image : DEFAULT_CARD_IMAGE})`;
 
         const h4 = document.createElement('h4');
         h4.textContent = project_name ?? "Untitled Project";
@@ -146,7 +147,7 @@ function rebuildProjectList() {
 function adjustHeadingSpacing() {
     if (!projectsHeading || !projectSection) return;
 
-    const bufferDesktop = 100; // more professional spacing
+    const bufferDesktop = 100;
     const bufferMobile = 16;
 
     if (isDesktop()) {
@@ -161,7 +162,6 @@ function adjustHeadingSpacing() {
 function adjustProjectListLayout() {
     if (!projectList) return;
 
-    // Reset styles
     Object.assign(projectList.style, { display: '', flexDirection: '', height: '', overflowX: '', overflowY: '', gap: '', padding: '', marginTop: '' });
     projectCards.forEach(card => Object.assign(card.style, { width: '', height: '', flex: '', margin: '', padding: '', borderRadius: '', boxShadow: '' }));
 
@@ -214,7 +214,7 @@ function setSpotlight(project) {
         projectSpotlight.style.backgroundImage = `url(${DEFAULT_SPOTLIGHT_IMAGE})`;
     } else {
         const { spotlight_image, project_name, long_description, url } = project;
-        projectSpotlight.style.backgroundImage = `url(${spotlight_image ?? DEFAULT_SPOTLIGHT_IMAGE})`;
+        projectSpotlight.style.backgroundImage = `url(${spotlight_image ? BASE_PATH + spotlight_image : DEFAULT_SPOTLIGHT_IMAGE})`;
 
         const h3 = document.createElement('h3');
         h3.textContent = project_name ?? 'Untitled Project';
