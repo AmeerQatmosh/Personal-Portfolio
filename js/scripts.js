@@ -23,10 +23,14 @@ const messageInput = document.getElementById('contactMessage');
 const emailErrorDiv = document.getElementById('emailError');
 const messageErrorDiv = document.getElementById('messageError');
 const charactersLeftDiv = document.getElementById('charactersLeft');
+const projectsContainer = document.querySelector('#projectsContainer');
+const projectsHeading = projectsContainer?.querySelector('h2');
 const projectSection = document.getElementById('projectSection');
 
 let projectsData = [];
 let projectCards = []; // Cached NodeList for project cards
+let resizeTimer = null;
+let scrollInterval = null;
 
 // ==========================
 // Helpers
@@ -65,8 +69,7 @@ async function loadAboutMe() {
 
         const headshotDiv = document.createElement('div');
         headshotDiv.className = "headshotContainer";
-        headshotDiv.style.padding = "0.5rem";
-        headshotDiv.style.margin = "1rem";
+        Object.assign(headshotDiv.style, { padding: '0.5rem', margin: '1rem' });
 
         const img = document.createElement('img');
         img.src = data.headshot ?? "./images/headshot.webp";
@@ -87,22 +90,6 @@ async function loadAboutMe() {
 // Section 2: Projects
 // ==========================
 async function loadProjects() {
-
-    // Add spacing below <h2> dynamically
-    const projectsContainer = document.querySelector('#projectsContainer');
-    const projectsHeading = projectsContainer?.querySelector('h2');
-
-    if (projectsHeading) {
-        // Only for desktop
-        if (isDesktop()) {
-            const buffer = 100; // px of space below heading
-            projectsHeading.style.marginBottom = `${buffer}px`;
-        } else {
-            // smaller margin on mobile if needed
-            projectsHeading.style.marginBottom = '12px';
-        }
-    }
-
     try {
         const res = await fetch('./data/projectsData.json');
         if (!res.ok) throw new Error("Failed to fetch projectsData.json");
@@ -113,7 +100,6 @@ async function loadProjects() {
         setupProjectCardListeners();
         setupProjectArrowScroll();
 
-        // Apply layout adjustments and heading spacing
         requestAnimationFrame(() => {
             adjustProjectListLayout();
             adjustHeadingSpacing();
@@ -146,28 +132,26 @@ function rebuildProjectList() {
 
     projectList.appendChild(frag);
 
-    // Cache project cards
     projectCards = Array.from(document.querySelectorAll('.projectCard'));
-
-    adjustProjectListLayout();
-    adjustHeadingSpacing(); // Ensure spacing after rebuild
+    requestAnimationFrame(() => {
+        adjustProjectListLayout();
+        adjustHeadingSpacing();
+    });
 }
 
 // ==========================
-// New: Adjust <h2> spacing dynamically
-// ==========================
+// Adjust heading spacing
 function adjustHeadingSpacing() {
-    const projectsContainer = document.querySelector('#projectsContainer'); // parent container
-    const projectsHeading = projectsContainer?.querySelector('h2');
+    if (!projectsHeading || !projectSection) return;
 
-    if (!projectsContainer || !projectsHeading) return;
+    const bufferDesktop = 100; // more professional spacing
+    const bufferMobile = 16;
 
     if (isDesktop()) {
         const headingHeight = projectsHeading.getBoundingClientRect().height;
-        const buffer = 24; // px distance between <h2> and projectSection
-        projectSection.style.marginTop = `${headingHeight + buffer}px`;
+        projectSection.style.marginTop = `${headingHeight + bufferDesktop}px`;
     } else {
-        projectSection.style.marginTop = ''; // reset for mobile
+        projectSection.style.marginTop = `${bufferMobile}px`;
     }
 }
 
@@ -176,34 +160,48 @@ function adjustProjectListLayout() {
     if (!projectList) return;
 
     // Reset styles
-    Object.assign(projectList.style, { display: '', flexDirection: '', height: '', overflowX: '', overflowY: '', marginTop: '' });
-    projectCards.forEach(card => Object.assign(card.style, { width: '', height: '', flex: '' }));
+    Object.assign(projectList.style, { display: '', flexDirection: '', height: '', overflowX: '', overflowY: '', gap: '', padding: '', marginTop: '' });
+    projectCards.forEach(card => Object.assign(card.style, { width: '', height: '', flex: '', margin: '', padding: '', borderRadius: '', boxShadow: '' }));
 
-    // Desktop layout
     if (isDesktop()) {
-        Object.assign(projectList.style, { display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', overflowX: 'hidden' });
+        Object.assign(projectList.style, { display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', overflowX: 'hidden', padding: '20px 0' });
 
         const spotlightHeight = projectSpotlight.getBoundingClientRect().height || window.innerHeight * 0.5;
         projectList.style.height = `${Math.round(spotlightHeight)}px`;
-        projectList.style.padding = '20px';
 
         const visibleCount = 3;
-        const gapPx = 12;
+        const gapPx = 16;
         const perCardHeight = Math.floor((spotlightHeight - (visibleCount - 1) * gapPx) / visibleCount);
 
-        projectCards.forEach(card => Object.assign(card.style, { height: `${perCardHeight}px`, width: '100%', flex: '0 0 auto' }));
+        projectCards.forEach(card => Object.assign(card.style, {
+            height: `${perCardHeight}px`,
+            width: '100%',
+            flex: '0 0 auto',
+            borderRadius: '8px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            padding: '8px',
+            margin: '0'
+        }));
     } else {
-        // Mobile layout
-        Object.assign(projectList.style, { display: 'flex', flexDirection: 'row', gap: '12px', overflowX: 'auto', overflowY: 'hidden', height: '' });
-        projectCards.forEach(card => Object.assign(card.style, { width: '', height: '', flex: '0 0 auto' }));
+        Object.assign(projectList.style, { display: 'flex', flexDirection: 'row', gap: '12px', overflowX: 'auto', overflowY: 'hidden', padding: '12px 0', height: 'auto' });
+
+        projectCards.forEach(card => Object.assign(card.style, {
+            width: '200px',
+            height: 'auto',
+            flex: '0 0 auto',
+            borderRadius: '8px',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+            padding: '6px',
+            margin: '0'
+        }));
     }
 }
 
 // ==========================
-// Section 2 continued: Spotlight
+// Spotlight
 function setSpotlight(project) {
-    const frag = document.createDocumentFragment();
     spotlightTitles.innerHTML = '';
+    const frag = document.createDocumentFragment();
 
     if (!project) {
         const h3 = document.createElement('h3');
@@ -254,8 +252,7 @@ function updateActiveCard(activeCard) {
 }
 
 // ==========================
-// Continuous Smooth Scroll Arrows
-let scrollInterval = null;
+// Smooth Scroll Arrows
 function setupProjectArrowScroll() {
     const scrollStep = 40;
     const scrollDelay = 10;
@@ -269,10 +266,8 @@ function setupProjectArrowScroll() {
     };
 
     const stopScroll = () => {
-        if (scrollInterval) {
-            clearInterval(scrollInterval);
-            scrollInterval = null;
-        }
+        if (scrollInterval) clearInterval(scrollInterval);
+        scrollInterval = null;
     };
 
     arrowLeft.addEventListener('pointerdown', () => startScroll(-1));
@@ -285,7 +280,7 @@ function setupProjectArrowScroll() {
 }
 
 // ==========================
-// Section 3: Form Validation
+// Form Validation
 function updateCharacterCount() {
     const length = messageInput.value.length;
     charactersLeftDiv.textContent = `Characters: ${length}/${MAX_MESSAGE_LENGTH}`;
@@ -324,17 +319,16 @@ form.addEventListener('submit', e => {
 updateCharacterCount();
 
 // ==========================
-// Handle window resize
-let resizeTimer = null;
+// Window resize
 window.addEventListener('resize', () => {
     if (resizeTimer) clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
         rebuildProjectList();
-        adjustHeadingSpacing(); // fix spacing on resize
+        adjustHeadingSpacing();
     }, 150);
 });
 
 // ==========================
-// Initialize Everything
+// Initialize
 loadAboutMe();
 loadProjects();
