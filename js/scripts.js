@@ -1,8 +1,11 @@
 // ==========================
 // Global Constants
 // ==========================
-const DEFAULT_CARD_IMAGE = '../images/card_placeholder_bg.webp';
-const DEFAULT_SPOTLIGHT_IMAGE = '../images/spotlight_placeholder_bg.webp';
+const BASE_PATH = window.location.pathname.includes("/Personal-Portfolio/")
+  ? "/Personal-Portfolio/"
+  : "/";
+const DEFAULT_CARD_IMAGE = `${BASE_PATH} images/card_placeholder_bg.webp`;
+const DEFAULT_SPOTLIGHT_IMAGE = `${BASE_PATH} images/spotlight_placeholder_bg.webp`;
 const MAX_MESSAGE_LENGTH = 300;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ILLEGAL_CHAR_EMAIL = /[^a-zA-Z0-9@._-]/;
@@ -55,7 +58,7 @@ projectList.appendChild(loadingProjects);
 // ==========================
 async function loadAboutMe() {
     try {
-        const res = await fetch('../data/aboutMeData.json');
+        const res = await fetch(`${BASE_PATH} data/aboutMeData.json`);
         if (!res.ok) throw new Error("Failed to fetch aboutMeData.json");
         const data = await res.json();
 
@@ -72,7 +75,7 @@ async function loadAboutMe() {
         Object.assign(headshotDiv.style, { padding: '0.5rem', margin: '1rem' });
 
         const img = document.createElement('img');
-        img.src = data.headshot ?? "../images/headshot.webp";
+        img.src = data.headshot ?? `${BASE_PATH} images/headshot.webp`;
         img.alt = "Headshot";
         Object.assign(img.style, { width: "100%", height: "auto", objectFit: "cover" });
 
@@ -91,7 +94,7 @@ async function loadAboutMe() {
 // ==========================
 async function loadProjects() {
     try {
-        const res = await fetch('../data/projectsData.json');
+        const res = await fetch(`${BASE_PATH} data/projectsData.json`);
         if (!res.ok) throw new Error("Failed to fetch projectsData.json");
         projectsData = await res.json();
 
